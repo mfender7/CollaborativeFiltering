@@ -8,12 +8,12 @@ import sqlalchemy.ext.declarative
 from sqlalchemy import Column, String
 
 
-class SchoolDatabase(object):
+class CalculationDatabase(object):
     """
     I have created a monster
     """
 
-    def __init__(this, base_class, course_, user_):
+    def __init__(this, base_class):
         """
         This instantiates an object with the given settings (namely hashlength)
             and returns an instance of the new class when create is called
@@ -26,17 +26,14 @@ class SchoolDatabase(object):
         groups are the group that a user belongs to, currently only one is possible.
         """
 
-        class SchoolTable(base_class):
+        class CalculationTable(base_class):
             """
             """
-            __tablename__ = "schools"
-            # creation info
-            school_id = Column(sqlalchemy.Integer, primary_key=True)
-            school_name = Column(String(64), nullable=False)
-            school_short = Column(String(32), nullable=False)
-            # relations
-            courses = sqlalchemy.orm.relationship(course_, backref="school")
-            students = sqlalchemy.orm.relationship(user_, backref="school")
+            __tablename__ = "calculations"
+            # signup info
+            user_id = Column(sqlalchemy.Integer, primary_key=True)
+            item_id = Column(sqlalchemy.Integer, primary_key=True)
+            rating = Column(sqlalchemy.Float, nullable=False)
 
             def __str__(self):
                 """
@@ -46,9 +43,9 @@ class SchoolDatabase(object):
             def __repr__(self):
                 """
                 """
-                return "<School {} ({})>".format(self.school_name, self.school_short or "")
+                return "<Calculated rating of user {} for item {} ({})>".format(self.user_id, self.item_id, self.rating)
 
-        this.class_ = SchoolTable
+        this.class_ = UserTable
 
     def create(this):
         """
@@ -60,4 +57,4 @@ class SchoolDatabase(object):
 
 if __name__ == "__main__":
     meta = sqlalchemy.MetaData()
-    testdb = SchoolDatabase(sqlalchemy.ext.declarative.declarative_base(), 64, "test", "test").create()
+    testdb = CalculationDatabase(sqlalchemy.ext.declarative.declarative_base(), 64, "test", "test").create()
