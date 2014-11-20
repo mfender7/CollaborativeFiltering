@@ -1,0 +1,26 @@
+<div id="sidebar" class="pure-u-md-5-24 pure-u-lg-5-24 pure-u-xl-5-24">
+    <div id="" class="pure-menu pure-menu-open">
+        <a href="/#" class="pure-menu-heading">ClassRank</a>
+        <ul>
+            {% if auth %}
+            <li><a href="/logout">Log out</a></li>
+            <li><a href="/dash">Dashboard</a></li>
+            <li><a href="/settings">Personal Setting</a></li>
+            {% else %}    
+            <li><a href="/login">Log in</a></li>
+            <li><a href="/register">Register</a></li>
+            {% end if %}
+            {% if user is not None%}
+            {% if user.admin %}
+            <li><a href="/adminpanel">Admin Panel</a></li>
+            {% end if %}
+            {%if user.moderator %}
+            <li><a href="/modpanel">School Moderation</a></li>
+            {% end if %}
+            {% end if %}
+            <li><a href="/info">More Information</a></li>
+            <li><a href="/me">Team</a></li>
+            <li><a href="/how">How it works</a></li>
+        </ul>
+    </div>
+</div>

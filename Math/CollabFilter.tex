@@ -1,0 +1,225 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{mathtools}
+\usepackage{listings}
+
+\title{Online Collaborative Filtering}
+\author{Joshua Morton}
+\date{May 2014}
+\begin{document}
+  \newcommand{\simil}{simil(u, u^{'})}
+  \newcommand{\similarity}{$\simil$ }
+  \newcommand{\p}{\newline \indent}
+  \newcommand{\Oh}[1]{$\mathcal{O}(#1)$}
+  \maketitle
+  \tableofcontents
+
+  \pagebreak
+  \section{Introduction}
+  This outlines some of the mathematics used in the online collaborative filter used in other areas of this tool.  This is both for my sanity and a way to outline and think through some of the mathematics used elsewhere in the codebase.  To begin with, I'll outline the collaborative filtering code as a whole.
+  \p The estimated opinion, $ r $, by user $ u $ of an item $ i $ is defined below, where $ U $ is the set of all users that are not $ u $.
+  \begin{displaymath}
+    r_{u, i} = k \sum_{u^{'} \in U} \simil r_{u, i}
+  \end{displaymath}
+  \indent This function makes use of two additional functions, $ \simil \text{ and } k $.  \similarity operates over the set $ I $, which is defined as the intersection of the sets of objects that have previously been rated by both $ u \text{ and } u^{'} $
+  \begin{displaymath}
+    k = \frac{1}{\sum \limits_{u^{'} \in U} |\simil|}
+  \end{displaymath}
+  \begin{displaymath}
+    \simil = \frac{\sum \limits_{i^{'} \in I} (r_{u, i}) (r_{u^{'}, i})}{rss(u) \times rss(u^{'})}
+  \end{displaymath}
+  \indent In this case, $rss$ signifies the root sum squares of all ratings for that user.  Here, $S$ refers to the set of all items rated by a given user.  To put this mathematically:
+  \begin{displaymath}
+    rss(u) = \sqrt{\sum \limits_{i \in S} r_{u, i}^2}
+  \end{displaymath}
+  \indent Putting this all together, we get that the formula to calculate the rating for a given item at any time can be expressed as
+  \begin{displaymath}
+    r_{u, i} = \frac{\sum \limits_{u^{'} \in U} (\simil \cdot r_{u, i})}{\sum \limits_{u^{'} \in U} |\simil|}
+  \end{displaymath}
+  \indent  This expands to the awful looking and disgusting piece of math that is
+  \begin{displaymath}
+    r_{u, i} = \frac{
+    \sum \limits_{u^{'} \in U} (\frac{\sum \limits_{i^{'} \in I} (r_{u, i}) (r_{u^{'}, i})}{\sqrt{\sum \limits_{i \in S} r_{u, i}^2} \sqrt{\sum \limits_{i \in S} r_{u^{'}, i}^2}} \cdot r_{u, i})}{\sum \limits_{u^{'} \in U} |\frac{\sum \limits_{i^{'} \in I} (r_{u, i}) (r_{u^{'}, i})}{\sqrt{\sum \limits_{i \in S} r_{u, i}^2} \sqrt{\sum \limits_{i \in S} r_{u^{'}, i}^2}}|}
+  \end{displaymath}
+
+  \pagebreak
+  \section{An Example}
+  \indent Much of this is repetitive code and can be made into functions, but this is still obviously worst case $\mathcal{O}(n^2)$ to calculate.  That cannot be changed, but through some clever mathematics, the speed with which an opinion can be calculated can be heavily improved, using a bit of magic.
+  \p To do this, the first step is to provide a small scale example of what happens within the code, in this case on a $4\times 4$ matrix/table that will be used in the example.  This can then be generalized to matrices (and tables) of arbitrary size.  To begin with, here is an example table of users and ratings:
+  \begin{center}
+  \begin{tabular}{|l||c|c|c|r|}
+  \hline
+  & A & B & C & D \\ \hline \hline
+  W & A,W & B,W & C,W & D,W \\ \hline
+  X & A,X & B,X & C,X & D,X \\ \hline
+  Y & A,Y & B,Y & C,Y & D,Y \\ \hline
+  Z & A,Z & B,Z & C,Z & D,Z \\ \hline
+  \end{tabular} 
+  \end{center}
+
+  \indent In this table, Users are represented by W, X, Y, and Z.  Items are represented by A, B, C, and D.  Therefore User W's rating for item A would be found in position AW.  No matter the database structure used, the resulting data can be essentially expressed in this manner.  Keep in mind that this matrix may be sparse and as a result, the value at any given position may be null.
+  \p On this note, during proceeding examples that use values, a cell value of 0 will represent a null, meaning that the given user has no existing opinion on the item in question.  Valid values will be from 1-5, so any given space can have an integer value 0, 1, 2, 3, 4, or 5.  The results of the Collaborative Filter may not be integers, and will be expressed as floats so as not to lose accuracy.
+  \p The beginning matrix we will use is this:
+  \begin{displaymath}
+    \begin{bmatrix}
+      1 & 2 & 3 & 5 \\
+      1 & 0 & 3 & 5 \\
+      1 & 1 & 1 & 1 \\
+      5 & 5 & 5 & 5 \\
+    \end{bmatrix}
+  \end{displaymath}
+  \p In this matrix, if like before users are represented by W, X, Y, Z and items by A, B, C, D we are looking for $(B, X)$, which is user X's opinion of item B.  To calculate this we first highlight the item for which we are trying to predict a rating
+  \begin{displaymath}
+      \begin{bmatrix}
+        1 & 2 & 3 & 5 \\
+        1 & \colorbox{red}{0} & 3 & 5 \\
+        1 & 1 & 1 & 1 \\
+        5 & 5 & 5 & 5 \\
+      \end{bmatrix}
+    \end{displaymath}
+  \p The next step is to calculate the similarities between users.  To do this, the algorithm takes the other items of user X and compares the ratings that X gave them to the ratings that W, Y, and Z gave.  So for each item A, C, and D the algorithm compares the values for each user via the second part of the \similarity function.  So the result is this:
+  \begin{align}
+    simil(X, W) = \frac{1+9+25}{\sqrt(1+9+25)\sqrt(1+9+25)} = \frac{35}{\sqrt{35}\sqrt{35}} &= 1 \\
+    simil(X, Y) = \frac{1+3+5}{\sqrt(1+1+1)\sqrt(1+9+25)} = \frac{9}{\sqrt{3}\sqrt{35}} &= .878... \\
+    simil(X, Z) = \frac{5+15+25}{\sqrt(25+25+25)\sqrt(1+9+25)} = \frac{55}{\sqrt{75}\sqrt{35}} &= .878...
+  \end{align}
+  \begin{center}
+    \begin{tabular}{|l||r|} 
+      \hline
+      simil(X, W) & 1 \\ \hline
+      simil(X, Y) & .878 \\ \hline
+      simil(X, Z) & .878 \\ \hline
+    \end{tabular}
+  \end{center}
+
+  \indent This example was chosen specifically to illustrate a few facts about the algorithm.  First, The \similarity function essentially finds (a version of) linear distance between to values in some n-dimensional space.  As a result, whether or not the related values are higher or lower, the distance will be unchanged (as long as they are equally different).  This is good because it means that there is not any kind of bias introduced based on the higher and lower values.
+  \p Now that we have the similarity values, there are two finals steps, to calculate $k$ and to calculate $r_(u,i)$.  Calculating $k$ can be considered part of the same step as calculating the similarities, because it is simply $^1/_{\sum(\simil)}$.  Both of these use the same values.
+
+  \begin{displaymath}
+    k = \frac{1}{\sum \limits_{u^{'} \in U}{|\simil|}} = \frac{1}{1+.878+.878} = .363
+  \end{displaymath}
+
+
+  \begin{displaymath}
+    \begin{bmatrix}
+      \colorbox{CornflowerBlue}{1} & \colorbox{BrickRed}{2} & \colorbox{ForestGreen}{3} & \colorbox{Orange}{5} \\
+      \colorbox{SkyBlue}{1} & \colorbox{red}{0} & \colorbox{SeaGreen}{3} & \colorbox{Apricot}{5} \\
+      \colorbox{CornflowerBlue}{1} & \colorbox{BrickRed}{1} & \colorbox{ForestGreen}{1} & \colorbox{Orange}{1} \\
+      \colorbox{CornflowerBlue}{5} & \colorbox{BrickRed}{5} & \colorbox{ForestGreen}{5} & \colorbox{Orange}{5} \\
+    \end{bmatrix}
+  \end{displaymath}
+
+  \indent The final step is then to propagate back down, using the rating and $k$ value to calculate the final opinion.  In this case, the darker values have been compared to the lighter values to get a weighting, and this weighting has been used to calculate weights for the dark red columns which are then used to calculate the expected value for the final, unknown position.
+
+  \begin{displaymath}
+    r_{u,i} = k \sum_{u^{'} \in U} \simil r_{u, i} = .363 \times (1 * 2 + .878 \times 1 + .878 \times 5) = 2.638
+  \end{displaymath}
+
+  \indent It is worth mentioning that this algorithm does function on less dense matrices and datasets.  
+
+  \pagebreak
+  \section{An Analysis of Operations}
+
+  \indent\indent In its current form, any time you wish to take data from the table, you need to calculate this $\mathcal{O}(n^2)$ (technically, its $m \times n$, but in this case we assume that $m \text{ and } n$ are of similar size.  This may not be the case, but it works for the example.) operation.  This is not a great situation, as for medium to large datasets (say, $n = 10000$), the algorithm can become slow since, even with some steps taken to increase the algorithm's efficiency, 100,000,000 operations for each database query is a tad steep.  
+  \p There are multiple ways to combat this.  A common approach is to use a k-nearest neighbor based approach.  This uses a linear algorithm to calculate the k-nearest neighbors to any given user and only runs in \Oh{n \times k} where k is a value of your choice, a significant improvement.  The trade off is that there is a possible loss of accuracy depending on the size of the dataset.  This loss is probably small, but in sparser, smaller datasets will be large enough to possible cause problems.
+  \p In this I outline an alternative method.  By using a combination of threaded queues and multilevel caches, you can keep completely accurate information and calculate, update, and change values in significantly less than \Oh{n^{2}} time.  To begin, there are a number of functions that a useful Collaborative Filter must implement.  You must be able to \textbf{Predict an Opinion}, \textbf{Change an Opinion} \textbf{Get a Known Opinion}, \textbf{Add a New Opinion} and \textbf{Remove an Old Opinion}.  
+  \p The downside to the method outlined here is that in some cases you will have slightly outdated information, depending on the number of changes happening to the database during your query.  This would be the case no matter what, since at scale caching is necessary anyway, but this problem may be exacerbated by the method outlined.
+
+  \subsection{The Data Structure}
+
+  \indent\indent The collaborative filter is built as a series of stacked matrices.  These can be implemented in any way, either as caches in memory, persistent databases, etc.  The examples work off of a model where each matrix is a cache in memory implemented as a two-dimensional hash-table.  These caches start empty, and are filled partially as calls are made to the database.  In other words, when the structure is created, the tables are empty, but after a call for user \textbf{U}, \textbf{cache[U]} would be filled.
+  \p To reiterate, this is by no means the only way to implement such a cache.  They could be created and fully filled at creation, but this was, in my opinion, a good method that had only minor losses in either space or time efficiency.
+  \p There are three levels of matrices.  The first one is the \textbf{Opinion Matrix}.  This Matrix contains the concrete opinions that people hold.  It would be implemented with the structure Map(User $\to$ Map(Item $\to$ Rating)).  
+  \p The second matrix, referred to as the \textbf{Similarity Matrix} contains calculated similarities between users.  It has the structure Map(User $\to$ Map(User $\to$ Similarity)).  
+  \p The final matrix contains the predicted opinions that a user would have for an item and is called the \textbf{Calculated Matrix}.  It is structured as Map(User $\to$ Map(Item $to$ Rating)), similar to the first matrix, but the calculated values will differ from the actual values and the matrix has an arbitrary sparsity, as opposed to being only as full as the users provide information.
+
+  \subsection{Similarity Operations}
+  \subsubsection{Get a Known Opinion}
+  \indent\indent This is entirely unchanged, much like normal, this simply requests the opinion from the lowest matrix or returns a null value if the item is not in the matrix.  Nothing difficult here.
+
+  \subsubsection{Predict an Opinion}
+  \indent\indent This too works similar to the example.  The main difference is that calculations become a fallback and instead the algorithm attempts to get relevant information from higher-level matrices if possible.  For example, instead of calculating user A's similarity to user B, the algorithm will first check the \textbf{Similarity Matrix} before actually dropping down and calculating the values itself.  In python pseudocode, this might look like this:
+  \begin{lstlisting}[language=python]
+def calculateOpinion(user, item):
+  if item in user in CalculatedMatrix:
+    return CalculatedMatrix[user][item]
+  else:
+    //calculate the result from this
+    sum(similarity(user, other) for other in users)
+
+def similarity(user, other):
+  if other in user in SimilarityMatrix:
+    return SimilarityMatrix[user][other]
+  else:
+    //calculate the similarity value as outlined
+    sum(rating(user, item) * ... for item in items)
+
+def rating(user, item):
+  reuturn OpinionMatrix[user][item]
+  \end{lstlisting}
+  \indent The important thing to note (other than my unnatural love for generator expressions) is that in each minor function, the calculation of the opinion, similarity, and rating, you can first search a cache.  This means that when calculating an opinion, if the opinion is known, the operation becomes \Oh{1}.  If all similarities between users are known, the operation becomes \Oh{n}.  This is a well known method of dynamic programming.  The difficult portion is in keeping the caches updated and keeping clashes from occurring.
+
+  \subsubsection{Change an Opinion}
+  \label{Change an Opinion}
+  \indent\indent  The method for changing an opinion is not easy.  With a cache free variant, it is simple, you change the opinion and moving forward, all newly calculated ratings use the new opinion.  Indeed, this setup could be easily changed to work similarly, simply by updating the lowest level matrix when an opinion changes and then removing any similarity values and calculated ratings that propagated from that user.  The problem is that this would invalidate most, if not all, calculated ratings any time the Opinion Matrix changed, making the system significantly less useful.
+  \p Instead, lets talk for a second about the similarity between two users.  Given two users $x$ and $y$, who have opinions on 4 items, there is a similarity value between them.  This similarity value can be expressed as
+  \begin{displaymath}
+    simil(x, y) = \frac{r_{x, a}r_{y, a} + r_{x, b}r_{y, b} + r_{x, c}r_{y, c} + r_{x, d}r_{y, d}}{
+      \sqrt{r_{x, a}^2+r_{x, b}^2+r_{x, c}^2+r_{x, d}^2}
+      \sqrt{r_{y, a}^2+r_{y, b}^2+r_{y, c}^2+r_{y, d}^2}
+    }
+  \end{displaymath}
+  \p This can be generalized as necessary.  What it means is that for any given pair of people, their similarities can be unpacked into a set of values.  When one singular value changes, you can use the unpacked form and change only a small number of values instead of recalculating everything from nulls.
+  \p The problem with this is that you cannot simply store \similarity.  Instead, you need to store it in a special form as a non-reduced fraction.  This is because you lose some information when you divide the top portion by the bottom portion, you cannot unpack without making database calls and multiple calculations.  This is actually quite simple, it requires storing similarity not as a single number, but as two separate numbers.
+  \begin{displaymath}
+    \simil = \frac{\sum \limits_{i^{'} \in I} (r_{u, i}) (r_{u^{'}, i})}{rss(u) \times rss(u^{'})} = \frac{a}{b}
+  \end{displaymath}
+  \p In this situation, $a$ and $b$ represent the top and bottom of the fractional value of the similarity.  The user $x$ has changed their opinion of item $i$.  The old opinion will be called $o$ and the new one $n$.  To change $a$ from the old value to the new one, you simply take $a_{new} = a_{old} - o\times r_{y, i} + n\times r_{y, i}$  Refactoring you get $a_{new} = a_{old} + r_{y, i}(n - o)$.  This takes only \Oh{1} time, two database calls, one for $o$ and one for $r_{y, i}$.  
+  \p Calculating $\Delta b$ is a tad more difficult.  Much like before, where you had $\frac{a}{b}$ and lost information, in the multiplication of $rss(x)\times rss(y)$ there is once more a loss of information.  By storing both of those values, $rss(x)$ and $rss(y)$ we avoid any problem.  $rss(y)$ remains unchanged and can be gathered via database call, and to calculate $\delta rss(x)$ the following works:
+  \begin{displaymath}
+    rss(x)_{new} = \sqrt{rss(x)_{old}^2 - o^2 + n^2}
+  \end{displaymath}
+  \p This too requires only a constant number of database calls.  It is important to note that although it looks like $rss$ should be a constant value for a given user, because of the way the rss is calculated (that it is based on the shared items) it must be stored on an individual basis for every user pair.
+
+  \subsubsection{Add a New Opinion}
+  \label{Add a New Opinion}
+  \indent\indent The final, and most complex form of change is the addition or removal of an opinion.  By this I mean that an opinion is changed from null to a value, or from a value to null.  Both work similarly, but I'll cover additions of new opinions first.  Its very similar to a change in opinion in that you have $simil(x, y) = \frac{a}{b}$ where $a$ and $b$ are the portions of the larger fraction.  The calculation of them is slightly different however, because in addition to changing an opinion you are changing the domain of the functions.
+  \p The $rss$ and $a$ functions iterate over the set $I$ of items that have been rated by both users.  When either user rates a new item, this set changes and so prior ratings are rendered inaccurate.   If the newly rated item is not shared (for example if user $a$ rates a new item that user $y$ never provided a rating) then nothing changes and you fall back on the method outlined in \ref{Change an Opinion}.  Otherwise you need to take additional steps.
+  \p Calculating $a$ becomes this:
+  \begin{displaymath}
+    a_{new} = a_{old} + r_{x, n}r_{y, n}
+  \end{displaymath}
+  \p In this case, $n$ is represented as $r_{x, n}$ and user $x$'s rating for the same item $n$ is represented as $r_{y, n}$.  Similarly, $rss(x)$ becomes 
+  \begin{displaymath}
+    rss(u) = \sqrt{rss(u)_{old}^2+r_{u, n}^2}
+  \end{displaymath}
+  \p The rss needs to be recalculated for both users since the new item $n$ is new to both of them.  Also note that the same thing essentially happens on both the top and bottom of the fraction.  If the entire fraction were written out it becomes obvious that on both the top and bottom of the fraction, there is an addition of the multiplication of the new ratings.  The operations are not exactly the same, but are very similar.
+  \begin{displaymath}
+    \Delta simil(x, y) = \frac{\Delta a}{\Delta b} = \frac{a_{old} + r_{x, n}r_{y, n}}{\sqrt{rss(x)_{old}^2+r_{x, n}^2}\sqrt{rss(y)_{old}^2+r_{y, n}^2}}
+  \end{displaymath}
+
+  \subsubsection{Remove an Old Opinion}
+  \indent\indent This is almost exactly like the methods in \ref{Add a New Opinion}, but in reverse.  If the item removed was not shared, then nothing changes.  Otherwise, $o$ needs to be removed from both $rss$ and $a$.  This is done as follows:
+  \begin{displaymath}
+    \Delta simil(x, y) = \frac{\Delta a}{\Delta b} = \frac{a_{old} - r_{x, o}r_{y, o}}{\sqrt{rss(x)_{old}^2-r_{x, o}^2}\sqrt{rss(y)_{old}^2-r_{y, o}^2}}
+  \end{displaymath}
+  That is basically all that there is to it.
+
+  \subsection{Calculating Ratings}
+  \indent\indent Calculating similarities is great and all, but it is only a single level.  Essentially, we can now be certain that every similarity is valid, but cached predictions may be outdated.  Each individual prediction can be redone in \Oh{n} by recalculating from the new similarities.  This takes \Oh{n^2} time overall, n for each person, and it can be done in \Oh{n} overall, constant for each user.
+  \p First, realize that for every user $u^{'}$ whose opinion was not changed, their similarity changes only in relation to a single user.  For user $u$ whose opinion was changed, every similarity also changes and so it takes a minimum of \Oh{n} because there are $n$ other users.  However, for every other user we can take advantage of the fact that $simil(x, y) = simil(y, x)$ and that only a single similarity is changing.  
+  \p Returning to the earlier formula
+  \begin{displaymath}
+    r_{u, i} = \frac{\sum \limits_{u^{'} \in U} (\simil \cdot r_{u, i})}{\sum \limits_{u^{'} \in U} |\simil|}
+  \end{displaymath}
+  \p We can see that, if the old similarity between two users $x$ and $y$ is called $simil_{old}(x, y)$ and the new one is $simil_{new}(x, y)$, and the old rating $o$ and new rating $n$ are as we've called them, then the new similarity can be calculated as such:
+  \begin{displaymath}
+    r_{new} = \frac{\sum \limits_{u^{'} \in U} (\simil \cdot r_{u, i}) - simil_{old}(x, y) \times o + simil_{new}(x, n) \times n}{\sum \limits_{u^{'} \in U} |\simil| - simil_{old}(x, y) + simil_{new}(x, n)}
+  \end{displaymath}
+  \p This is a constant time method to update the rating for a given user whose opinion was not changed.  In this case as well, you need to store two values, $\sum \limits_{u^{'} \in U} (\simil \cdot r_{u, i})$ and separately $\sum \limits_{u^{'} \in U} |\simil|$.  This is only a minor increase in space used though.  
+
+  \pagebreak
+  \section{Implementation}
+
+ \end{document}

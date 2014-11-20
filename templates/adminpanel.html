@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ClassRank</title>
+        <link rel="stylesheet" type="text/css" href="/static/site.css">
+        {% include "head.html" %}
+        <script type="text/javascript" src="/static/js/socket.js"></script>
+        <script type="text/javascript">
+            function makerequest(toggled_user_id, role, clickEvent){
+                var data = {
+                    //sets values to be sent to the websocket and then used by the 
+                    username:"{{user.user_name}}",
+                    apikey:"{{user.apikey}}",
+                    role:role,
+                    toggled:toggled_user_id
+                }
+                function anon(returnedObject, clickEvent){
+                    if (returnedObject.stat === "toggled"){
+                        console.log(clickEvent.target);
+                        target = clickEvent.target;
+                        if (target.parentNode.className == "False"){
+                            target.parentNode.className = "True";
+                            target.innerHTML = "True";
+                        } else if (target.parentNode.className == "True"){
+                            target.parentNode.className = "False";
+                            target.innerHTML = "False";
+                        }
+                    }
+                    return null;
+                }
+                var result = makeConnection("{{socketbase}}"+"api/toggle", data, anon, clickEvent);
+            }
+        </script>            
+    </head>
+    <body>
+        <div id="container" class="pure-g">
+            {% include "sidebar.html" %}
+            <div id="main" class="pure-u-md-18-24 pure-u-lg-18-24 pure-u-xl-18-24">
+                <h2>Welcome </h2>
+                <p>Alright, so lets add something to the database.  For now, just add a school, that should be easy enough.
+                <form class="pure-form" action="adminpanel" method="post">
+                    <input type="text" name="school_name" placeholder="School Name">
+                    <input type="text" name="school_short" placeholder="School Abbreviation">
+                    <button type="submit" class="pure-button pure-button-primary">Lets Get it Started!</button>
+                </form>
+                <h2>Schools</h2>
+                    <table class="pure-table pure-table-bordered" id="schools">
+                    <thead><th>school id</th><th>School Name</th><th>School Abbreviation</th><th>Users</th><th>Courses</th></thead>
+                    {% for school in schools %}
+                        <tr><td>{{school.school_id}}</td><td>{{school.school_name}}</td><td>{{school.school_short}}</td><td>{{school.numstudents}}</td><td>{{school.numcourses}}</td></tr>
+                    {% end for %}
+                    </table>
+                <h2>Users</h2>
+                    <table class="pure-table pure-table-bordered" id="users">
+                        <thead><th>User id</th><th>School id</th><th>Username</th><th>Email address</th><th>Mod?</th><th>Admin?</th></thead>
+                        {%for otheruser in users %}
+                            <tr><td>{{otheruser.user_id}}</td>
+                                <td>{{otheruser.school_id}}</td>
+                                <td>{{otheruser.user_name}}</td>
+                                <td>{{otheruser.email_address}}</td>
+                                <td class="{{otheruser.moderator}}">
+                                    <a href="javascript:void(0);" onclick="makerequest('{{otheruser.user_id}}', 'moderator', event)">
+                                        {{otheruser.moderator}}
+                                    </a>
+                                </td>
+                                <td class="{{otheruser.admin}}">
+                                    <a href="javascript:void(0);" onclick="makerequest('{{otheruser.user_id}}', 'admin', event)">
+                                        {{otheruser.admin}}
+                                    </a>
+                                </td>
+                                    </tr>
+                        {% end for %}
+                    </table>
+            </div>
+            </div>
+        </div>
+    </body>
+</html>

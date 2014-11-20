@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ClassRank</title>
+        {% include "head.html" %}
+        <link rel="stylesheet" type="text/css" href="/static/splash.css">
+    </head>
+    <body>
+        <div id="container" class="pure-g">
+            {% include "sidebar.html" %}
+            <div id="main" class="pure-u-md-18-24 pure-u-lg-18-24 pure-u-xl-18-24">
+                <form class="pure-form pure-form-stacked" action="admin" method="post">
+                    <fieldset>
+                        <input type="text" placeholder="username" name="username">
+                        <input type="password" placeholder="password" name="password">
+                        <button type="submit" class="pure-button pure-button-primary">Administrate!</button>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

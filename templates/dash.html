@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ClassRank</title>
+        {% include "head.html" %}
+        <link rel="stylesheet" type="text/css" href="/static/splash.css">
+        <link rel="stylesheet" type="text/css" href="/static/font-awesome/css/font-awesome.min.css">
+        <script type="text/javascript" src="/static/js/socket.js"></script>
+        <script type="text/javascript">
+        function addForm(course_id, clickEvent){
+             var data = {
+                    //sets values to be sent to the websocket and then used by the 
+                    username:"{{user.user_name}}",
+                    apikey:"{{user.apikey}}",
+                    course:course_id,
+                }
+
+            function callback(returnedObject, clickEvent){
+                location.reload(true);
+            }
+
+            var result = makeConnection("{{socketbase}}"+"api/add_course", data, callback, clickEvent);
+
+        }
+        </script>
+    </head>
+    <body>
+        <div id="container" class="pure-g">
+            {% include "sidebar.html" %}
+            <div id="main" class="pure-u-md-18-24 pure-u-lg-18-24 pure-u-xl-18-24">
+                <h2>Welcome </h2>
+                <h2>Your Courses</h2>
+                <table class="pure-table pure-table-bordered">
+                    <form class="pure-form" action="/dash" method="post">
+                    <thead><th>Identifier</th><th>Semester</th><th>Year</th><th>Professor</th><th>Rating</th><th>Difficulty</th><th>Grade</th><th>Update</th><th>Delete</th></thead>
+                    {% for course in your_courses %}
+                    <tr>
+                        <td>{{course.identifier}}</td>
+                        <td>{{course.semester or "??"}}</td>
+                        <td>{{course.year or "??"}}</td>
+                        <td>{{course.professor or "??"}}</td>
+                        <td class="pure-form"><input type="number" class="pure-input-1-2" value="{{your_ratings[course.course_id].rating}}" placeholder="--" name="rating-{{course.course_id}}"></td>
+                        <td class="pure-form"><input type="number" class="pure-input-1-2" value="{{your_ratings[course.course_id].difficulty}}" placeholder="--" name="difficulty-{{course.course_id}}"></td>
+                        <td class="pure-form"><input type="number" class="pure-input-1-2" value="{{your_ratings[course.course_id].grade}}" placeholder="--" name="grade-{{course.course_id}}"></td>
+                        <td><button type="submit" class="pure-button pure-button-primary" name="submit" value="{{course.course_id}}"><i class="fa fa-plus"></i></button></td>
+                        <td><button type="submit" class="pure-button pure-button-primary" name="delete" value="{{course.course_id}}"><i class="fa fa-times"></i></button></td>
+                    </tr>
+                    {% end for %}
+                </table>
+                </form>
+                <h2>Availible Courses</h2>
+                <table class="pure-table pure-table-bordered">
+                    <thead><th>Course id</th><th>Course name</th><th>Identifier</th><th>Semester</th><th>Year</th><th>Professor</th><th>Rate</th></thead>
+                    {% for course in school_courses %}
+                    <tr><td>{{course.course_id}}</td>
+                        <td>{{course.course_name}}</td>
+                        <td>{{course.identifier}}</td>
+                        <td>{{course.semester or "??"}}</td>
+                        <td>{{course.year or "??"}}</td>
+                        <td>{{course.professor or "??"}}</td>
+                        <td><a href="javascript:void(0);" onclick="addForm({{course.course_id}}, event)"><button class="pure-button pure-button-primary"><i class="fa fa-toggle-up"></i></button></a></td>
+                    </tr>
+                    {% end for %}
+                </table>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,4 @@
+SQLAlchemy==0.9.4
+scrypt==0.6.1
+tornado==4.0
+psycopg2==2.5.3

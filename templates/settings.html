@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ClassRank</title>
+        {% include "head.html" %}
+        <link rel="stylesheet" type="text/css" href="/static/splash.css">
+    </head>
+    <body>
+        <div id="container" class="pure-g">
+            {% include "sidebar.html" %}
+            <div id="main" class="pure-u-md-18-24 pure-u-lg-18-24 pure-u-xl-18-24">
+                <form class="pure-form pure-fomr-stacked pure-form-aligned" action="settings" method="post">
+                        <h2>Update Settings</h2>
+                        <h3>Username: {{user.user_name}}</h3>
+                        <h3>School: {{ fetch_school(user.school_id).school_name }}</h3>
+                    <fieldset>
+                        <div class="pure-control-group">
+                            <label for="fname">First Name: </label>
+                            <input type="text" name="fname" placeholder="{{user.first_name or 'First Name'}}">
+                        </div>
+                        <div class="pure-control-group">
+                            <label for="lname">Last Name: </label>
+                            <input type="text" name="lname" placeholder="{{user.last_name or 'Last Name'}}">
+                        </div>
+                        <div class="pure-control-group">
+                            <label for="email">Email Address: </label>
+                            <input type="text" name="email" placeholder="{{user.email_address or 'Email Address'}}">
+                        </div>
+                        <div class="pure-control-group">
+                            <label for="age">Age: </label>
+                            <input type="number" name="age" placeholder="{{user.age or 'Age'}}">
+                        </div>
+                        <div class="pure-control-group">
+                            <label for="grad">Graduation Year: </label>
+                            <input type="number" name="grad" placeholder="{{user.graduation or 'Graduation'}}">
+                        </div>
+                        <button type="submit" class="pure-button pure-button-primary">Update settings</button>
+                    </fieldset>
+                </form>
+                <form class="pure-form pure-form-stacked" action="settings" method="post">
+                    <fieldset>
+                        <h2>Update Password</h2>
+                        <input type="text" name="current_pw" placeholder="Current Password">
+                        <input type="text" name="new_password" placeholder="New Password">
+                        <button type="submit" name="password" value="true" class="pure-button pure-button-primary">Change Password</button>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

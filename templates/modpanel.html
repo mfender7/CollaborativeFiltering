@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>ClassRank</title>
+        {% include "head.html" %}
+        <link rel="stylesheet" type="text/css" href="/static/site.css">
+        <script type="text/javascript" src="/static/js/socket.js"></script>
+        <script type="text/javascript">
+            function makerequest(toggled_user_id, role, clickEvent){
+                var data = {
+                    //sets values to be sent to the websocket and then used by the 
+                    username:"{{user.user_name}}",
+                    apikey:"{{user.apikey}}",
+                    role:role,
+                    toggled:toggled_user_id
+                }
+                function anon(returnedObject, clickEvent){
+                    if (returnedObject.stat === "toggled"){
+                        console.log(clickEvent.target);
+                        target = clickEvent.target;
+                        if (target.parentNode.className == "False"){
+                            target.parentNode.className = "True";
+                            target.innerHTML = "True";
+                        } else if (target.parentNode.className == "True"){
+                            target.parentNode.className = "False";
+                            target.innerHTML = "False";
+                        }
+                    }
+                    return null;
+                }
+                var result = makeConnection("{{socketbase}}"+"api/toggle", data, anon, clickEvent);
+            }
+        </script>  
+    </head>
+    <body>
+        <div id="container" class="pure-g">
+            {% include "sidebar.html" %}
+            <div id="main" class="pure-u-md-18-24 pure-u-lg-18-24 pure-u-xl-18-24">
+                <h2>Welcome </h2>
+                <p>You are a moderator, you can add a school to the database
+                <form class="pure-form" action="modpanel" method="post" id="makecourse">
+                    <input type="text" name="course_name" placeholder="Course Name">
+                    <input type="text" name="course_identifier" placeholder="Course Abbreviation">
+                    <input type="text" name="professor" placeholder="Professor">
+                    <input type="number" name="year" placeholder="Year">
+                    <select name="semester" formid="makecourse">
+                        <option value="">Select</option>
+                        <option value="Fall">Fall</option>
+                        <option value="Spring">Spring</option>
+                        <option value="Summer">Summer</option>
+                        <option value="Winter?">Winter?</option>
+                    </select>
+                    <button type="submit" class="pure-button pure-button-primary">Add a course</button>
+                </form>
+                <h2>Courses</h2>
+                    <table class="pure-table pure-table-bordered">
+                        <thead><th>Course id</th><th>Course name</th><th>Identifier</th><th>Semester</th><th>Year</th><th>Professor</th></thead>
+                        {% for course in courses %}
+                        <tr><td>{{course.course_id}}</td>
+                            <td>{{course.course_name}}</td>
+                            <td>{{course.identifier}}</td>
+                            <td>{{course.semester or "??"}}</td>
+                            <td>{{course.year or "??"}}</td>
+                            <td>{{course.professor or "??"}}</td>
+                        </tr>
+                        {% end for %}
+                    </table>
+                <h2>Users</h2>
+                    <table class="pure-table pure-table-bordered">
+                        <thead><th>User id</th><th>School id</th><th>Username</th><th>Email address</th><th>Mod?</th></thead>
+                        {%for otheruser in users %}
+                            <tr><td>{{otheruser.user_id}}</td>
+                                <td>{{otheruser.school_id}}</td>
+                                <td>{{otheruser.user_name}}</td>
+                                <td>{{otheruser.email_address}}</td>
+                                <td class="{{otheruser.moderator}}">
+                                    <a href="javascript:void(0);" onclick="makerequest('{{otheruser.user_id}}', 'moderator', event)">
+                                        {{otheruser.moderator}}
+                                    </a>
+                                </td>
+                                    </tr>
+                        {% end for %}
+                    </table>
+            </div>
+            </div>
+        </div>
+    </body>
+</html>
