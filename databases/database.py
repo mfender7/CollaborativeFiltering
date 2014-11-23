@@ -11,10 +11,9 @@ from contextlib import contextmanager
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-from . import UserDatabase
-from . import CourseDatabase
-from . import RatingDatabase
-from . import SchoolDatabase
+from . import CalculationDatabase
+from . import OpinionDatabase
+from . import SimilarityDatabase
 import time  # for creating hash salts
 import scrypt  # for hashing passwords
 import hashlib
@@ -55,10 +54,9 @@ class Database(object):
         self.metadata = self.base.metadata
 
         # the three main parts of the overall database system
-        self.course = CourseDatabase.CourseDatabase(self.base).create()
-        self.rating = RatingDatabase.RatingDatabase(self.base, self.course).create()
-        self.user = UserDatabase.UserDatabase(self.base, self.hashlength, self.course, self.rating).create()
-        self.school = SchoolDatabase.SchoolDatabase(self.base, self.course, self.user).create()
+        self.course = CalculationDatabase.CalculationDatabase(self.base).create()
+        self.rating = OpinionDatabase.OpinionDatabase(self.base).create()
+        self.user = SimilarityDatabase.SimilarityDatabase(self.base).create()
 
         self.metadata.create_all(self.engine)
         self.sessionmaker = sqlalchemy.orm.sessionmaker(bind=self.engine, expire_on_commit=False)
@@ -437,7 +435,7 @@ class Database(object):
     def ratings(self):
         with self.session_scope() as session:
             return session.query(self.rating).all()
-    
+
 
     @property
     def courses(self):
@@ -503,4 +501,3 @@ class PasswordLengthError(Exception):
 
     def str(self):
         return "User {}'s password ({}) is too long".format(self.user, self.password)
-
