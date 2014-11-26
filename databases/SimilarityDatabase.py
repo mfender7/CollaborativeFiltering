@@ -22,8 +22,8 @@ class SimilarityDatabase(object):
             """
             __tablename__ = "similarities"
             # creation info
-            user_id = Column(sqlalchemy.Integer, primary_key=True)
-            userp_id = Column(sqlalchemy.Integer, primary_key=True)
+            usera_id = Column(sqlalchemy.Integer, primary_key=True)
+            userb_id = Column(sqlalchemy.Integer, primary_key=True)
             a = Column(sqlalchemy.Float, nullable=False)
             b = Column(sqlalchemy.Float, nullable=False)
 
@@ -35,7 +35,7 @@ class SimilarityDatabase(object):
             def __repr__(self):
                 """
                 """
-                return "<Similarity {} of user {} with user' {}>".format(self.a/self.b, self.user_id, self.userp_id)
+                return "<Similarity {} of user {} with user' {}>".format(self.a/self.b, self.usera_id, self.userb_id)
 
         this.class_ = RatingTable
 
