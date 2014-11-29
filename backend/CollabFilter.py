@@ -9,7 +9,7 @@ from sys import stdout
 
 class CollaborativeFilter(object):
     """
-    A Collaborative Filtering algorithm/object meant to be heavily optimized 
+    A Collaborative Filtering algorithm/object meant to be heavily optimized
     for speed
     """
 
@@ -67,7 +67,7 @@ class CollaborativeFilter(object):
     def fetchOpinion(self, user, item): #done
         """
         Directly fetches an opinion from the database
-        
+
         Arguments:
             user -> the user who has an opinion
             item -> the item of which they have an opinion
@@ -129,12 +129,12 @@ class CollaborativeFilter(object):
 
         Return -> a tuple (self._ratingTop(user, item), self._ratingBottom(user, item))
         """
-        
+
         #create the users and items sets
         users = {person[0] for person in self.users()} - {user}
 
         #use those sets to seperately calculate the top and bottom values for the final rating
-        return (self._ratingTop(user, item, users), self._ratingBottom(user, item, users)) 
+        return (self._ratingTop(user, item, users), self._ratingBottom(user, item, users))
 
 
     def _ratingTop(self, user, item, users): #done
@@ -197,7 +197,7 @@ class CollaborativeFilter(object):
         """
 
         return multSum / (rssUser * rssOther)
-        
+
 
     def _setSimilarities(self, user, other): #done
         """
@@ -217,7 +217,7 @@ class CollaborativeFilter(object):
         multsum = self._multSum(user, other, sharedItems)
         return (userRss, otherRss, multsum)
 
-        
+
     def _rss(self, user, shared): #done
         """
         Calulates the root sum squred of the ratings for the given user of the items they share with the other user
@@ -250,7 +250,7 @@ class CollaborativeFilter(object):
     def _opinion(self, user, item): #done
         """
         gets the opinion a user has about an item from the database
-        
+
         Arguments:
             user -> a user whose opinion we want
             item -> the item for which we want their opinion
@@ -309,7 +309,7 @@ class CollaborativeFilter(object):
             items      -> the list of all items known by that user
             opinion    -> the new opinion
 
-            Return -> -1, 0, or 1.  -1 if the item should be removed from the list, 0 if there are no changes, 
+            Return -> -1, 0, or 1.  -1 if the item should be removed from the list, 0 if there are no changes,
                       and 1 if the item should be added to the list
         """
 
@@ -382,7 +382,7 @@ class CollaborativeFilter(object):
                 items = [column[0] for column in self.items()]
                 for otherItem in items:
                     self._updateCalculatedRating(user, item, other, opinion, oldOpinion, oldSimil)
-                #then update for the user 
+                #then update for the user
                 #self.caculated[user][item] = self._forceNoCacheRating(user, item)
             else:
                 pass

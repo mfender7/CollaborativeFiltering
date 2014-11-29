@@ -11,7 +11,6 @@ from contextlib import contextmanager
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-from sqlalchemy import _or
 from . import CalculationDatabase
 from . import OpinionDatabase
 from . import SimilarityDatabase
@@ -33,7 +32,7 @@ class Database(object):
         sessionmaker -- a factory for sessions, can be used by external tools to make specialized database queries
     """
 
-    def __init__(self, name="ClassRank.db", folder="data"):
+    def __init__(self, name="CF.db", folder="data"):
         """
         initializes the database, creates tables and files as necessary
 
@@ -46,7 +45,7 @@ class Database(object):
 
         The system defaults to name="ClassRank.db", table="main" folder="data", uid="user_id, and hashlength="64"
         """
-        self.engine = sqlalchemy.create_engine(os.environ['DATABASE_URL'])
+        self.engine = sqlalchemy.create_engine(folder)
 
         self.base = sqlalchemy.ext.declarative.declarative_base()
         self.metadata = self.base.metadata
@@ -101,14 +100,9 @@ class Database(object):
         return False
 
 
-    def opinion_exists(self, session, user=None, item=None):
+    def opinion_exists(self, session, user, item):
         try:
-            query = {}
-            if user:
-                query["user_id"] = user
-            if item:
-                query["item_id"] = item
-            session.query(self.opinion).filter_by(**query).one()
+            session.query(self.opinion).filter(self.opinion.user_id == user, self.opinion.item_id == item).one()
             return True
         except sqlalchemy.orm.exc.NoResultFound:
             return False
@@ -172,7 +166,7 @@ class Database(object):
     def remove_user(self, session, user):
         try:
             session.query(self.opinion).filter(self.opinion.user_id == user).delete()
-            session.query(self.similarity).filter(_or(self.similarity.usera_id == user, self.similarity.userb_id == user))
+            session.query(self.similarity).filter(self.similarity.usera_id == user | self.similarity.userb_id == user)
             session.query(self.calculation).filter(self.calculation.user_id == user).delete()
         except sqlalchemy.exc.SQLAlchemyError:
             raise UserDoesNotExistError(DatabaseObjects.Opinion, user)
@@ -184,6 +178,11 @@ class Database(object):
         except sqlalchemy.exc.SQLAlchemyError:
             raise ItemDoesNotExistError(DatabaseObjects.Opinion, item)
 
+    def empty_similarities(self, session):
+        session.Similarity.query.delete()
+
+    def empty_calculations(self, session):
+        session.Calculation.query.delete()
 
     def update_opinion(self, session, user, item, rating):
         if self.opinion_exists(session, user, item):
@@ -281,7 +280,7 @@ class UserDoesNotExistError(Exception):
         self.name = name
         self.information = args
 
-    def _-str__(self):
+    def __str__(self):
         return "User {} does not have any opinions".format(self.name)
 
 class ItemDoesNotExistError(Exception):
@@ -290,5 +289,5 @@ class ItemDoesNotExistError(Exception):
         self.name = name
         self.information = args
 
-    def _-str__(self):
+    def __str__(self):
         return "Item {} does not have any opinions".format(self.name)

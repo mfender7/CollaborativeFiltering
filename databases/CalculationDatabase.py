@@ -45,7 +45,7 @@ class CalculationDatabase(object):
                 """
                 return "<Calculated rating of user {} for item {} ({})>".format(self.user_id, self.item_id, self.rating)
 
-        this.class_ = UserTable
+        this.class_ = CalculationTable
 
     def create(this):
         """

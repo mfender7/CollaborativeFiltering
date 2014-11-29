@@ -37,7 +37,7 @@ class SimilarityDatabase(object):
                 """
                 return "<Similarity {} of user {} with user' {}>".format(self.a/self.b, self.usera_id, self.userb_id)
 
-        this.class_ = RatingTable
+        this.class_ = SimilarityTable
 
     def create(this):
         """

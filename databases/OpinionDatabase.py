@@ -36,7 +36,7 @@ class OpinionDatabase(object):
                 """
                 return "<Opinion for item {} by user {}({})>".format(self.item_id, self.user_id, self.rating)
 
-        this.class_ = CourseTable
+        this.class_ = OpinionTable
 
     def create(this):
         return this.class_
